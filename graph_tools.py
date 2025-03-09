@@ -8,16 +8,14 @@ def laplacian_weight_matrix(G, epsilon):
 
 
 def metropolis_weight_matrix(G, lazy=False): 
-    raise NotImplementedError("CORRECT THIS")
     a = G.number_of_nodes()
     W = np.zeros((a,a))
     degrees = [val for (node, val) in G.degree()]
-    for i in range(a):
-        for j in range(i+1, a):
-            weight = 1 / (1 + max(degrees[i], degrees[j]))
-            if lazy:
-                weight /= 2
-            W[i,j] = W[j,i] = weight
+    for i,j in G.edges:
+        weight = 1 / (1 + max(degrees[i], degrees[j]))
+        if lazy:
+            weight /= 2
+        W[i,j] = W[j,i] = weight
 
     W[np.diag_indices_from(W)] = 1 - np.sum(W, axis = 1)
     return W
