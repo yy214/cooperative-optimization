@@ -35,7 +35,9 @@ def estimate_alpha(Kmm, Knm, alpha, y):
     # alpha_opt is the argmin of this
     return sigma**2 / 2 * alpha.T@Kmm@alpha + 1/2 * np.sum((y - Knm@alpha)**2)  + nu/2*np.sum(alpha**2)
 
+def calc_alpha_opt(Kmm, Knm, y):
+    return np.linalg.solve(sigma**2*Kmm + Knm.T@Knm + nu*np.eye(y.shape[0]), Knm.T@y)
 
 def calc_optimality_gap(Kmm, Knm, y, alpha):
-    alpha_opt = np.linalg.solve(sigma**2*Kmm + Knm.T@Knm + nu*np.eye(y.shape[0]), Knm.T@y)
+    alpha_opt = calc_alpha_opt(Kmm, Knm, y)
     return np.sqrt(np.sum((alpha_opt-alpha)**2))
