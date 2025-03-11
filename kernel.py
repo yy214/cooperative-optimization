@@ -27,6 +27,13 @@ def calc_f(dataX, ind, val, alpha):
 
 
 def grad_fi(dataY, Kmm, Knm, alpha, ids_agent):
+    r"""
+    :param dataY: y coord of data
+    :param Kmm: Kmm as in the paper
+    :param Knm: Knm as in the paper
+    :param alpha: the "alpha_i" in the paper
+    :param ids_agent: array of ids of the data points that are selected by the agent
+    """
     Kim = Knm[ids_agent, :]
     return sigma**2/5*Kmm@alpha + Kim.T@(Kim@alpha - dataY[ids_agent]) + nu/5*alpha 
 
