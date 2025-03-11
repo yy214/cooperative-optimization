@@ -1,5 +1,6 @@
 import numpy as np
 import pickle
+import matplotlib.pyplot as plt
 
 # parameters
 sigma = 0.5
@@ -43,8 +44,20 @@ def estimate_alpha(Kmm, Knm, alpha, y):
     return sigma**2 / 2 * alpha.T@Kmm@alpha + 1/2 * np.sum((y - Knm@alpha)**2)  + nu/2*np.sum(alpha**2)
 
 def calc_alpha_opt(Kmm, Knm, y):
-    return np.linalg.solve(sigma**2*Kmm + Knm.T@Knm + nu*np.eye(y.shape[0]), Knm.T@y)
+    assert Knm.shape[0] == y.shape[0], "Make sure that you select y[:n] instead of full y"
+    return np.linalg.solve(sigma**2*Kmm + Knm.T@Knm + nu*np.eye(Kmm.shape[0]), Knm.T@y)
 
 def calc_optimality_gap(Kmm, Knm, y, alpha):
     alpha_opt = calc_alpha_opt(Kmm, Knm, y)
     return np.sqrt(np.sum((alpha_opt-alpha)**2))
+
+def plot_optimality_gap(Kmm, Knm, y, alphas_over_time):
+    alpha_opt = calc_alpha_opt(Kmm, Knm, y)
+    opt_gap = [np.sqrt(np.sum((alpha_opt - alphas_over_time[i,:])**2)) 
+               for i in range(alphas_over_time.shape[0])]
+
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.plot(opt_gap)
+    plt.title("optimality gap of gradient tracking")
+    plt.show()
