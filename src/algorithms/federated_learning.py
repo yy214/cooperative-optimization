@@ -2,9 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 import networkx as nx
-from centralized_solution import *
+from utils.centralized_solution import *
 
-from kernel import kernel_matrix, grad_fi, calc_f, estimate_alpha
+from utils.kernel import kernel_matrix, grad_fi, calc_f, estimate_alpha
 
 def fedAVG(dataY, m, Kmm, Knm, agents, B, C, E, T, lr, lr_value):
     
