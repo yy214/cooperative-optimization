@@ -81,6 +81,34 @@ def plot_gap(gaps):
 def diminishing_step_size(k):
     return 0.002/(0.001*k+1)
 
+def dgd_dp(a,m,agents,Kmm, Knm,W,y, step_count):
+    xi = np.random.normal(0, 0.01, size=(step_count+1, a, m))
+    g = np.zeros((a, m))
+    # local gradients
+    for i, ids_agent in enumerate(agents):
+        g[i, :] = grad_fi(y, Kmm, Knm, xi[0,i,:], ids_agent)
+
+    W_hat = W - np.identity(W.shape[0])
+    for k in range(step_count):
+        val_step_size = dim_step_size(k)
+        var = laplace_scale(k)
+        gamma = dim_gamma(k)
+        laplacian_noise = np.random.laplace(loc = 0.0, scale = var, size = (a,m))
+        ksi = xi[k, :, :] + laplacian_noise
+        for i in range(a):
+            xi[k+1, i, :] = xi[k, i, :] - gamma*np.sum([W_hat[i,j]*(ksi[j,:]-xi[k,i,:]) for j in range(a) if j != i], axis = 0) - val_step_size*g[i, :] # note that W is symetric so W.T doesn't matter
+        for i, ids_agent in enumerate(agents):
+            g[i, :] = grad_fi(y, Kmm, Knm, xi[k+1,i, :], ids_agent)
+    return xi
+
+def laplace_scale(iter):
+    return 1+0.001*iter**0.3
+def dim_step_size(iter):
+    return 0.002/(1+0.001*iter)
+def dim_gamma(iter):
+    return 0.002/(1+0.001*iter**0.9)
+
+
 if __name__=="__main__":
 
     with open("first_database.pkl", "rb")as f:
@@ -112,12 +140,20 @@ if __name__=="__main__":
     # dgd
 
     xi_cst_step_size = dgd(a,m,agents,Kmm, Knm,W,y, step_count, step_size)
-    xi_dim_step_size = dgd(a,m,agents,Kmm, Knm,W,y, step_count, diminishing_step_size, constant_step_size=False)
+    # xi_dim_step_size = dgd(a,m,agents,Kmm, Knm,W,y, step_count, diminishing_step_size, constant_step_size=False)
     # affichage
 
-    plot(agents, X,y, xi_dim_step_size, step_count)
+    # plot(agents, X,y, xi_dim_step_size, step_count)
 
-    gaps = [compute_gap(xi_cst_step_size, X[sel],y[sel],x_selected), compute_gap(xi_dim_step_size, X[sel],y[sel],x_selected)]
+    # gaps = [compute_gap(xi_cst_step_size, X[sel],y[sel],x_selected), compute_gap(xi_dim_step_size, X[sel],y[sel],x_selected)]
+    # plot_gap(gaps)
+
+
+
+    xi_dgd_dp = dgd_dp(a,m,agents,Kmm, Knm,W,y, step_count)
+    gaps = [compute_gap(xi_dgd_dp, X[sel],y[sel],x_selected), compute_gap(xi_cst_step_size, X[sel],y[sel],x_selected)]
     plot_gap(gaps)
+
+
 
     
