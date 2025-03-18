@@ -6,6 +6,26 @@ from centralized_solution import *
 
 from kernel import kernel_matrix, grad_fi, calc_f, estimate_alpha
 
+def solve_mod(x,y,x_selected):
+    n = len(x)
+
+    M = Cov2(x, x_selected)
+    A = (0.5**2)*Cov(x_selected) + M.T @ M
+    b = M.T @ y
+
+    # here the regularization parameter nu is 1.0
+    A = A + 1.*np.eye(int(np.sqrt(n)))
+
+    # it is good to compute the max/min eigenvalues of A for later, but only for small-size matrices
+    if n<101:
+        ei, EI =np.linalg.eig(A)
+        vv = [min(ei), max(ei)]
+        print('Min and max eigenvalues of A : ', print(vv))
+
+    alpha = np.linalg.solve(A,b)
+
+    return alpha
+
 def fedAVG(dataY, m, Kmm, Knm, agents, B, C, E, T, lr, lr_value):
     
     a = len(agents)
@@ -30,39 +50,38 @@ def fedAVG(dataY, m, Kmm, Knm, agents, B, C, E, T, lr, lr_value):
         sol[t+1] = np.mean(np.array(x_i), axis = 0)
     return sol
 
-def scaffold(dataY, m, Kmm, Knm, agents, B, C, E, T, lr, lr_value, gamma):
+def scaffold(dataY, m, Kmm, Knm, agents, B, C, E, T, lr, gamma):
 
     a = len(agents)
     idx_a = [i for i in range(a)]
 
-    def sgd_scaffold(dataY, B, E, lr, lr_value, t, x_t, y_t, ids_agent, c_c):
+    def sgd_scaffold(dataY, B, E, lr, x_t, c, ids_agent, c_i):
         x_k = np.copy(x_t)
         for i in range(E):
-            lr_val = lr(lr_value, t*E+i)
             batch = np.random.choice(ids_agent, B, replace=False)
             grad = grad_fi(dataY, Kmm, Knm, x_k, batch)
-            x_k = x_k - lr_val * (grad - c_c + y_t)
-        c_c_plus = c_c-y_t + 1/(E*lr(lr_value,(t+1)*E))*(x_t-x_k)
-        return x_k, c_c_plus,
+            x_k = x_k - lr * (grad - c_i + c)
+        c_i_plus = c_i-c + 1/(E*lr)*(x_t-x_k)
+        return x_k, c_i_plus,
 
     x_0 = np.random.normal(0, 0.01, size=(m))
-    y_t = np.random.normal(0, 0.01, size=(m))
+    c = np.random.normal(0, 0.01, size=(m))
     x = np.zeros((T+1, m))
     x[0] = x_0
     c_i_list = [np.zeros(m) for _ in range(a)]
 
     for t in range(T):
         delta_x_c = []
-        delta_y_c = []
+        delta_c_i = []
         selected_agents = np.random.choice(idx_a, C, replace=False)
         for agent in selected_agents:
-            x_c, c_c_plus = sgd_scaffold(dataY, B, E, lr, lr_value, t, x[t], y_t, agents[agent], c_i_list[agent])
+            x_c, c_i_plus = sgd_scaffold(dataY, B, E, lr, x[t], c, agents[agent], c_i_list[agent])
             delta_x_c.append(x_c-x[t])
-            delta_y_c.append(c_c_plus - c_i_list[agent])
-            c_i_list[agent] = c_c_plus
+            delta_c_i.append(c_i_plus - c_i_list[agent])
+            c_i_list[agent] = c_i_plus
 
-        x[t+1] = x[t]+ np.mean(gamma*np.array(delta_x_c), axis=0)
-        y_t = y_t + np.sum(np.array(delta_y_c), axis=0)/a
+        x[t+1] = x[t]+ gamma*np.mean(np.array(delta_x_c), axis=0)
+        c = c + np.sum(np.array(delta_c_i), axis=0)/a
 
     return x
 
@@ -188,13 +207,13 @@ if __name__=="__main__":
 
     labels = []
     gaps = []
-    labels.append("fedAVG B=20, C=3, E=50")
+    labels.append("fedAVG B=20, C=5, E=50")
 
-    alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 3, 50, 500, constant_lr, step_size)
+    alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 5, 50, 500, constant_lr, step_size)
     gaps.append(compute_f_gap(alpha,Kmm, Knm, X[sel],y[sel],x_selected))
 
-    labels.append("SCAFFOLD B=20, C=3, E=50")
-    alpha = scaffold(y, m, Kmm, Knm, agents, 20,3,50,500, constant_lr, step_size, 1)
+    labels.append("SCAFFOLD B=20, C=5, E=50")
+    alpha = scaffold(y, m, Kmm, Knm, agents, 20,5,50,500, 0.002, 1)
     gaps.append(compute_f_gap(alpha,Kmm, Knm, X[sel],y[sel],x_selected))
     plot_gap_TE(gaps, labels, [50,50])
     
