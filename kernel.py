@@ -59,5 +59,5 @@ def plot_optimality_gap(Kmm, Knm, y, alphas_over_time):
     plt.xscale("log")
     plt.yscale("log")
     plt.plot(opt_gap)
-    plt.title("optimality gap of gradient tracking")
+    plt.title("optimality gap")
     plt.show()
