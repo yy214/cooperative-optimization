@@ -55,13 +55,13 @@ def scaffold(dataY, m, Kmm, Knm, agents, B, C, E, T, lr, gamma):
     a = len(agents)
     idx_a = [i for i in range(a)]
 
-    def sgd_scaffold(dataY, B, E, lr, x_t, c, ids_agent, c_i):
+    def sgd_scaffold(dataY, B, E, lr, x_t, c, ids_agent, c_i, t):
         x_k = np.copy(x_t)
         for i in range(E):
             batch = np.random.choice(ids_agent, B, replace=False)
             grad = grad_fi(dataY, Kmm, Knm, x_k, batch)
-            x_k = x_k - lr * (grad - c_i + c)
-        c_i_plus = c_i-c + 1/(E*lr)*(x_t-x_k)
+            x_k = x_k - lr(t*E+i)* (grad - c_i + c)
+        c_i_plus = c_i-c + 1/(E*lr(t*E+i))*(x_t-x_k)
         return x_k, c_i_plus,
 
     x_0 = np.random.normal(0, 0.01, size=(m))
@@ -75,7 +75,7 @@ def scaffold(dataY, m, Kmm, Knm, agents, B, C, E, T, lr, gamma):
         delta_c_i = []
         selected_agents = np.random.choice(idx_a, C, replace=False)
         for agent in selected_agents:
-            x_c, c_i_plus = sgd_scaffold(dataY, B, E, lr, x[t], c, agents[agent], c_i_list[agent])
+            x_c, c_i_plus = sgd_scaffold(dataY, B, E, lr, x[t], c, agents[agent], c_i_list[agent], t)
             delta_x_c.append(x_c-x[t])
             delta_c_i.append(c_i_plus - c_i_list[agent])
             c_i_list[agent] = c_i_plus
@@ -91,7 +91,10 @@ def constant_lr(lr_value, iter):
     return lr_value
 
 def variant_lr(lr_value, iter):
-    return lr_value/(0.01*iter + 1)
+    return lr_value/(0.001*iter + 1)
+
+def variant_lr2(iter):
+    return 0.002/(0.001*iter + 1)
 
 def compute_gap(xi, X,y,x_selected):
     x_star = solve_mod(X,y,x_selected)
@@ -134,45 +137,58 @@ def plot_gap_TC(gaps, labels, C):
     plt.legend()
     plt.show()
 
+def kernel_matrix(dataX1, dataX2, ids1, ids2):
+    return np.array([[kernel(dataX1[i], dataX2[j]) for j in ids2] for i in ids1])
+
 if __name__=="__main__":
 
-    with open("first_database.pkl", "rb")as f:
+    with open("second_database.pkl", "rb")as f:
         X,y=pickle.load(f)
+
+    liste_aplatie = [arr.flatten() for arr in X]
+
+    # Concaténer les tableaux aplatis
+    X = np.concatenate(liste_aplatie)
+    liste_aplatie = [y_i for y_agent in y for y_i in y_agent]
+
+    # Concaténer les tableaux aplatis
+    y = np.array(liste_aplatie)
 
     # parameters
     n = 100
     m = 10
     a = 5 # nb of agents
-    step_size = 0.002 
+    step_size = 0.002
+
 
     # selected indexes for calculations
     sel = list(range(n))
     ind = np.random.choice(sel,m,replace=False)
-    x_selected = X[ind] # ids_M
-    Kmm = kernel_matrix(X, ind, ind)
-    Knm = kernel_matrix(X, sel, ind)
+    x_m_points = np.linspace(-1,1,m) # ids_M
+    Kmm = kernel_matrix(x_m_points, x_m_points, range(m), range(m))
+    Knm = kernel_matrix(X, x_m_points, sel, range(m))
 
     # agents
     sel_copy = np.arange(n)
-    np.random.shuffle(sel_copy)
     agents = np.array_split(sel_copy, a)
 
-    # labels = []
-    # gaps = []
-    # E = [20,1,50]
-    # C = [5,5,5]
-    # labels.append("fedAVG B=20, C=5, E = 20")
-    # alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 5, 20, 500, constant_lr, step_size)
-    # gaps.append(compute_gap(alpha, X[sel],y[sel], x_selected))
-    # labels.append("fedAVG B=20, C=5, E = 1 (=DGD)")
-    # alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 5, 1, 10000, constant_lr, step_size)
-    # gaps.append(compute_gap(alpha, X[sel],y[sel], x_selected))
-    # labels.append("fedAVG B=20, C=5, E = 50")
-    # alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 5, 50, 200, constant_lr, step_size)
-    # gaps.append(compute_gap(alpha, X[sel],y[sel], x_selected))
+### Constant step size fedAVG
+    labels = []
+    gaps = []
+    E = [20,1,50]
+    C = [5,5,5]
+    labels.append("fedAVG B=20, C=5, E = 20")
+    alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 5, 20, 500, constant_lr, step_size)
+    gaps.append(compute_gap(alpha, X[sel],y[sel], x_m_points))
+    labels.append("fedAVG B=20, C=5, E = 1 (=DGD)")
+    alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 5, 1, 10000, constant_lr, step_size)
+    gaps.append(compute_gap(alpha, X[sel],y[sel], x_m_points))
+    labels.append("fedAVG B=20, C=5, E = 50")
+    alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 5, 50, 200, constant_lr, step_size)
+    gaps.append(compute_gap(alpha, X[sel],y[sel], x_m_points))
     
-    # plot_gap_TE(gaps, labels, E)
-    # plot_gap_TC(gaps, labels, C)
+    plot_gap_TE(gaps, labels, E)
+    plot_gap_TC(gaps, labels, C)
 
     # labels = []
     # gaps = []
@@ -180,10 +196,10 @@ if __name__=="__main__":
     # C = [3,5]
     # labels.append("fedAVG B=20, C=3, E = 20")
     # alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 3, 20, 500, constant_lr, step_size)
-    # gaps.append(compute_gap(alpha, X[sel],y[sel], x_selected))
+    # gaps.append(compute_gap(alpha, X[sel],y[sel], x_m_points))
     # labels.append("fedAVG B=20, C=5, E = 20")
     # alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 5, 20, 500, constant_lr, step_size)
-    # gaps.append(compute_gap(alpha, X[sel],y[sel], x_selected))
+    # gaps.append(compute_gap(alpha, X[sel],y[sel], x_m_points))
 
     # plot_gap_TE(gaps, labels, E)
     # plot_gap_TC(gaps, labels, C)
@@ -194,26 +210,76 @@ if __name__=="__main__":
     # C = [5,5,5]
     # labels.append("fedAVG B=10, C=5, E = 20")
     # alpha = fedAVG(y, m, Kmm, Knm, agents, 10, 5, 20, 500, constant_lr, step_size)
-    # gaps.append(compute_gap(alpha, X[sel],y[sel], x_selected))
+    # gaps.append(compute_gap(alpha, X[sel],y[sel], x_m_points))
     # labels.append("fedAVG B=15, C=5, E = 20")
     # alpha = fedAVG(y, m, Kmm, Knm, agents, 15, 5, 20, 500, constant_lr, step_size)
-    # gaps.append(compute_gap(alpha, X[sel],y[sel], x_selected))
+    # gaps.append(compute_gap(alpha, X[sel],y[sel], x_m_points))
     # labels.append("fedAVG B=20, C=5, E = 20")
     # alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 5, 20, 500, constant_lr, step_size)
-    # gaps.append(compute_gap(alpha, X[sel],y[sel], x_selected))
+    # gaps.append(compute_gap(alpha, X[sel],y[sel], x_m_points))
+    
+    # plot_gap_TE(gaps, labels, E)
+    # plot_gap_TC(gaps, labels, C)
+
+### Diminishing stepsize fedAVG
+
+    labels = []
+    gaps = []
+    E = [20,1,50]
+    C = [5,5,5]
+    labels.append("fedAVG B=20, C=5, E = 20")
+    alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 5, 20, 500, variant_lr, step_size)
+    gaps.append(compute_gap(alpha, X[sel],y[sel], x_m_points))
+    labels.append("fedAVG B=20, C=5, E = 1 (=DGD)")
+    alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 5, 1, 10000, variant_lr, step_size)
+    gaps.append(compute_gap(alpha, X[sel],y[sel], x_m_points))
+    labels.append("fedAVG B=20, C=5, E = 50")
+    alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 5, 50, 200, variant_lr, step_size)
+    gaps.append(compute_gap(alpha, X[sel],y[sel], x_m_points))
+    
+    plot_gap_TE(gaps, labels, E)
+    plot_gap_TC(gaps, labels, C)
+
+    # labels = []
+    # gaps = []
+    # E = [20,20]
+    # C = [3,5]
+    # labels.append("fedAVG B=20, C=3, E = 20")
+    # alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 3, 20, 500, variant_lr, step_size)
+    # gaps.append(compute_gap(alpha, X[sel],y[sel], x_m_points))
+    # labels.append("fedAVG B=20, C=5, E = 20")
+    # alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 5, 20, 500, variant_lr, step_size)
+    # gaps.append(compute_gap(alpha, X[sel],y[sel], x_m_points))
+
+    # plot_gap_TE(gaps, labels, E)
+    # plot_gap_TC(gaps, labels, C)
+
+    # labels = []
+    # gaps = []
+    # E = [20,20,20]
+    # C = [5,5,5]
+    # labels.append("fedAVG B=10, C=5, E = 20")
+    # alpha = fedAVG(y, m, Kmm, Knm, agents, 10, 5, 20, 500, variant_lr, step_size)
+    # gaps.append(compute_gap(alpha, X[sel],y[sel], x_m_points))
+    # labels.append("fedAVG B=15, C=5, E = 20")
+    # alpha = fedAVG(y, m, Kmm, Knm, agents, 15, 5, 20, 500, variant_lr, step_size)
+    # gaps.append(compute_gap(alpha, X[sel],y[sel], x_m_points))
+    # labels.append("fedAVG B=20, C=5, E = 20")
+    # alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 5, 20, 500, variant_lr, step_size)
+    # gaps.append(compute_gap(alpha, X[sel],y[sel], x_m_points))
     
     # plot_gap_TE(gaps, labels, E)
     # plot_gap_TC(gaps, labels, C)
 
     labels = []
     gaps = []
-    labels.append("fedAVG B=20, C=5, E=50")
+    labels.append("fedAVG B=20, C=3, E=50")
 
-    alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 5, 50, 500, constant_lr, step_size)
-    gaps.append(compute_f_gap(alpha,Kmm, Knm, X[sel],y[sel],x_selected))
+    alpha = fedAVG(y, m, Kmm, Knm, agents, 20, 3, 20, 500, variant_lr, step_size)
+    gaps.append(compute_f_gap(alpha,Kmm, Knm, X[sel],y[sel],x_m_points))
 
-    labels.append("SCAFFOLD B=20, C=5, E=50")
-    alpha = scaffold(y, m, Kmm, Knm, agents, 20,5,50,500, 0.002, 1)
-    gaps.append(compute_f_gap(alpha,Kmm, Knm, X[sel],y[sel],x_selected))
+    labels.append("SCAFFOLD B=20, C=3, E=50")
+    alpha = scaffold(y, m, Kmm, Knm, agents, 20,3,20,500, variant_lr2, 1)
+    gaps.append(compute_f_gap(alpha,Kmm, Knm, X[sel],y[sel],x_m_points))
     plot_gap_TE(gaps, labels, [50,50])
     
