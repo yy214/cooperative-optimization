@@ -4,7 +4,7 @@ import pickle
 import networkx as nx
 from utils.centralized_solution import *
 
-from utils.kernel import kernel_matrix, grad_fi, calc_f, estimate_alpha
+from utils.kernel import kernel, kernel_matrix, grad_fi, calc_f, estimate_alpha
 
 def solve_mod(x,y,x_selected):
     n = len(x)
