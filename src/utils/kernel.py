@@ -51,13 +51,13 @@ def calc_optimality_gap(Kmm, Knm, y, alpha):
     alpha_opt = calc_alpha_opt(Kmm, Knm, y)
     return np.sqrt(np.sum((alpha_opt-alpha)**2))
 
-def plot_optimality_gap(Kmm, Knm, y, alphas_over_time):
+def plot_optimality_gap(Kmm, Knm, y, alphas_over_time, **kwargs):
     alpha_opt = calc_alpha_opt(Kmm, Knm, y)
     opt_gap = [np.sqrt(np.sum((alpha_opt - alphas_over_time[i,:])**2)) 
                for i in range(alphas_over_time.shape[0])]
 
     plt.xscale("log")
     plt.yscale("log")
-    plt.plot(opt_gap)
-    plt.title("optimality gap")
-    plt.show()
+    plt.plot(opt_gap, **kwargs)
+    # plt.title("optimality gap")
+    # plt.show()

@@ -6,6 +6,22 @@ import networkx as nx
 from utils.graph_tools import metropolis_weight_matrix, laplacian_weight_matrix
 from utils.kernel import kernel_matrix, grad_fi, calc_f
 
+def gt(a, m, agents, Kmm, Knm, W, y, step_count, step_size=0.002):
+    xi = np.random.normal(0, 0.01, size=(step_count+1, a, m))
+    g = np.zeros((step_count+1, a, m))
+    # local gradients
+    for i, id_agent in enumerate(agents):
+        g[0, i, :] = grad_fi(y, Kmm, Knm, xi[0,i,:], id_agent)
+
+    for k in range(step_count):
+        xi[k+1, :, :] = W@xi[k, :, :] - step_size*g[k, :, :] # note that W is symetric so W.T doesn't matter
+        g[k+1, :, :] = W@g[k,:,:]
+        for i, id_agent in enumerate(agents):
+            g[k+1, i, :] += \
+                + grad_fi(y, Kmm, Knm, xi[k+1,i, :], id_agent) \
+                - grad_fi(y, Kmm, Knm, xi[k,i,:], id_agent)
+    return xi
+
 def main():
     with open("first_database.pkl", "rb")as f:
         X,y=pickle.load(f)
@@ -32,19 +48,8 @@ def main():
 
     G = nx.cycle_graph(a)
     W = laplacian_weight_matrix(G, 0.1) # check the matrices
-    xi = np.random.normal(0, 0.01, size=(step_count+1, a, m))
-    g = np.zeros((step_count+1, a, m))
-    # local gradients
-    for i, id_agent in enumerate(agents):
-        g[0, i, :] = grad_fi(y, Kmm, Knm, xi[0,i,:], id_agent)
 
-    for k in range(step_count):
-        xi[k+1, :, :] = W@xi[k, :, :] - step_size*g[k, :, :] # note that W is symetric so W.T doesn't matter
-        g[k+1, :, :] = W@g[k,:,:]
-        for i, id_agent in enumerate(agents):
-            g[k+1, i, :] += \
-                + grad_fi(y, Kmm, Knm, xi[k+1,i, :], id_agent) \
-                - grad_fi(y, Kmm, Knm, xi[k,i,:], id_agent)
+    xi = gt(a, m, agents, Kmm, Knm, W, y, step_count, step_size=step_size)
 
     # affichage
     for i in range(a):
