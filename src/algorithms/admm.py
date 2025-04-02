@@ -1,5 +1,5 @@
 import numpy as np
-from utils.kernel import nu, sigma
+from algorithms.utils.kernel import nu, sigma
 
 def admm(a, m, agents, Kmm, Knm, G, dataY, step_count, beta=0.1):
     x_i = np.zeros((step_count+1, a, m))

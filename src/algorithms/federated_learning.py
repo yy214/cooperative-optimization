@@ -2,9 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 import networkx as nx
-from utils.centralized_solution import *
+from algorithms.utils.centralized_solution import *
 
-from utils.kernel import kernel, kernel_matrix, grad_fi, calc_f, estimate_alpha
+from algorithms.utils.kernel import kernel, kernel_matrix, grad_fi, calc_f, estimate_alpha
 
 def solve_mod(x,y,x_selected):
     n = len(x)

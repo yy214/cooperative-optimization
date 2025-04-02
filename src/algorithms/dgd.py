@@ -2,10 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 import networkx as nx
-from utils.centralized_solution import *
+from algorithms.utils.centralized_solution import *
 
-from utils.graph_tools import metropolis_weight_matrix, laplacian_weight_matrix
-from utils.kernel import kernel_matrix, grad_fi, calc_f
+from algorithms.utils.graph_tools import metropolis_weight_matrix, laplacian_weight_matrix
+from algorithms.utils.kernel import kernel_matrix, grad_fi, calc_f
 
 def solve_mod(x,y,x_selected):
     n = len(x)
