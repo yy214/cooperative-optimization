@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import pickle
 import networkx as nx
 
-from utils.graph_tools import metropolis_weight_matrix, laplacian_weight_matrix
-from utils.kernel import kernel_matrix, grad_fi, calc_f
+from algorithms.utils.graph_tools import metropolis_weight_matrix, laplacian_weight_matrix
+from algorithms.utils.kernel import kernel_matrix, grad_fi, calc_f
 
 def gt(a, m, agents, Kmm, Knm, W, y, step_count, step_size=0.002):
     xi = np.random.normal(0, 0.01, size=(step_count+1, a, m))
