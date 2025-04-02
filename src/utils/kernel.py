@@ -47,6 +47,9 @@ def calc_alpha_opt(Kmm, Knm, y):
     assert Knm.shape[0] == y.shape[0], "Make sure that you select y[:n] instead of full y"
     return np.linalg.solve(sigma**2*Kmm + Knm.T@Knm + nu*np.eye(Kmm.shape[0]), Knm.T@y)
 
+def calc_smooth(Kmm, Knm):
+    return np.linalg.eig(sigma**2*Kmm + Knm.T@Knm + nu*np.eye(Kmm.shape[0]))
+
 def calc_optimality_gap(Kmm, Knm, y, alpha):
     alpha_opt = calc_alpha_opt(Kmm, Knm, y)
     return np.sqrt(np.sum((alpha_opt-alpha)**2))
