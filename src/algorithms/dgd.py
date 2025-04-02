@@ -123,6 +123,7 @@ if __name__=="__main__":
     m = 10
     a = 5 # nb of agents
     step_count = 10000
+    print(X)
 
     # selected indexes for calculations
     sel = list(range(n))
